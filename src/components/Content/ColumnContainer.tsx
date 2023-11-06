@@ -1,10 +1,10 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import tw, { TwStyle, css } from 'twin.macro';
 import { SerializedStyles } from '@emotion/react';
 import { Icon } from '@iconify/react';
 import { CSS } from '@dnd-kit/utilities';
 import { useSortable } from '@dnd-kit/sortable';
-import { Column } from '@/src/types/entity.typs';
+import { Column, Task } from '@/src/types/entity.typs';
 
 interface Props {
   column: Column;
@@ -12,14 +12,24 @@ interface Props {
   deleteColumn: (id: string) => void;
   // eslint-disable-next-line no-unused-vars
   updateColumn: (id: string, data: string) => void;
+  // eslint-disable-next-line no-unused-vars
+  createTask: (id: string) => void;
+  tasks: Task[];
   styles?: TwStyle | SerializedStyles;
 }
 
 export function ColumnContainer({
-  column, deleteColumn, updateColumn, styles,
+  column, deleteColumn, updateColumn, createTask, tasks, styles,
 }: Props) {
   const [ isEdit, setIsEdit, ] = useState(false);
   const [ newTitle, setNewTitle, ] = useState(column.title);
+
+  // 전체 목록을 받아서 해당 컬럼의 태스크만 표시함.
+  const columnTasks = useMemo(() => {
+    return tasks.filter((task) => task.columnId === column.id);
+  }, [ tasks, column, ]);
+
+  const [ count, setCount, ] = useState(columnTasks.length);
 
   // 드래그앤 드랍에 필요한 여러가지 사항들을 제공해준다.
   // useSortable의 경우 배열에 어울린다.
@@ -59,7 +69,7 @@ export function ColumnContainer({
 
   const style = {
     default: css([
-      tw` w-[350px] h-[500px] bg-black-700 max-h-[500px] rounded-md flex flex-col border-2 border-black-700 `,
+      tw` w-[400px] h-[500px] bg-black-700 max-h-[500px] rounded-md flex flex-col border-2 border-black-700 `,
       isDragging && tw` bg-[#222222] border-rose-500 opacity-40 `,
       styles,
     ]),
@@ -67,16 +77,25 @@ export function ColumnContainer({
       tw` flex flex-grow `,
     ]),
     top: css([
-      tw` text-[1.2rem] cursor-grab rounded-md bg-black-800 rounded-b-0 border-4 p-3 border-black-700 flex items-center gap-2 `,
+      tw` flex gap-2 items-stretch p-2 shrink-0 border-4 border-black-700 bg-black-800 rounded-2 `,
     ]),
     count: css([
-      tw` flex justify-center items-center shrink-0 bg-black-700 text-[.8rem] px-2 py-1 rounded-full `,
+      tw` text-white bg-[#222222] rounded px-2 font-900 flex items-center justify-center `,
     ]),
-    title: css([
-      tw` flex gap-2 shrink-0 flex-1 `,
+    button: css([
+      tw` text-gray-400 text-[90%] hover:text-white bg-black-700 hover:bg-black-600 rounded p-2 flex items-center justify-center `,
     ]),
-    delete: css([
-      tw` text-gray-500 hover:text-white hover:bg-black-700 rounded px-1 py-2 `,
+    buttons: css([
+      tw` flex gap-2 `,
+    ]),
+    titleString: css([
+      tw` flex items-center justify-start flex-1 shrink-0 border-2 border-transparent p-1 `,
+    ]),
+    titleInput: css([
+      tw` flex items-center justify-start flex-1 shrink-0 w-full rounded border-2 border-rose-500 bg-black-base p-1 `,
+    ]),
+    addButton: css([
+      tw` w-full rounded p-2 border-4 border-black-700 bg-black-800 text-white flex items-center justify-center gap-1 hover:bg-black-900/30 `,
     ]),
   };
 
@@ -91,43 +110,48 @@ export function ColumnContainer({
       <div css={style.default} ref={setNodeRef} style={inlineStyle}>
         <div
           css={style.top}
-          {...attributes}
-          {...listeners}
         >
-          <div css={style.title}>
-            <div css={style.count}>0</div>
-            {isEdit ? (
-              <>
-                <input
-                  type='text'
-                  value={newTitle}
-                  onChange={onChangeInput}
-                  tw='shrink-0 w-[20px] outline-none bg-black-800 border-2 border-rose-500 rounded flex-1'
-                />
-              </>
-            ) : (
-              <div tw='flex-1 shrink-0'>{column.title}</div>
-            )}
+          <div
+            css={style.button}
+            {...attributes}
+            {...listeners}
+          >
+            <Icon icon='fa6-solid:left-right' />
           </div>
-          <div className='flex gap-1'>
+          <div css={style.count}>{count}</div>
+          {isEdit ? (
+            <>
+              <input
+                type='text'
+                value={newTitle}
+                onChange={onChangeInput}
+                css={style.titleInput}
+              />
+            </>
+          ) : (
+            <div css={style.titleString}>{column.title}</div>
+          )}
+          <div css={style.buttons}>
             <button
-              css={style.delete}
               aria-label='edit'
               onClick={onClickEdit}
+              css={style.button}
             >
               <Icon icon={isEdit ? 'fa6-solid:check' : 'tabler:edit'} />
             </button>
             <button
-              css={style.delete}
               aria-label='delete'
               onClick={() => deleteColumn(column.id)}
+              css={style.button}
             >
               <Icon icon='iconamoon:trash-fill' />
             </button>
           </div>
         </div>
         <div css={style.item}>content</div>
-        <div>footer</div>
+        <button aria-label='addTask' onClick={() => createTask(column.id)} css={style.addButton}>
+          <Icon icon='typcn:plus' /> 메모 추가
+        </button>
       </div>
     </>
   );

@@ -6,7 +6,7 @@ import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors
 } from '@dnd-kit/core';
 import { SortableContext, arrayMove } from '@dnd-kit/sortable';
-import { Column } from '@/src/types/entity.typs';
+import { Column, Task } from '@/src/types/entity.typs';
 import { Nihil } from '@/src/utils/nihil';
 import { ColumnContainer } from './ColumnContainer';
 
@@ -20,7 +20,14 @@ export function KanbanBoard({ styles, }: Props) {
     return columns.map((column) => column.id);
   }, [ columns, ]);
 
+  const [ tasks, setTasks, ] = useState<Task[]>([]);
+  const taskId = useMemo(() => {
+    return tasks.map((task) => task.id);
+  }, [ tasks, ]);
+
   const [ activeColumn, setActiveColumn, ] = useState<Column | null>(null);
+
+  console.log(tasks);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -64,6 +71,21 @@ export function KanbanBoard({ styles, }: Props) {
       setColumns((prev) => {
         return prev.filter((item) => item.id !== id);
       });
+    },
+    []
+  );
+
+  const createTask = useCallback(
+    (columnId: string) => {
+      const taskId = Nihil.uuid();
+      const newTask: Task = {
+        id: taskId,
+        columnId,
+        title: `그냥 테스트 ${taskId}`,
+        created: new Date(),
+      };
+
+      setTasks((prev) => ([ ...prev, newTask, ]));
     },
     []
   );
@@ -115,7 +137,7 @@ export function KanbanBoard({ styles, }: Props) {
       styles,
     ]),
     button: css([
-      tw` h-[60px] w-[350px] min-w-[350px] cursor-pointer rounded-lg bg-black-700 p-4 ring-rose-500 hover:ring-2 flex gap-2 items-center `,
+      tw` h-[60px] w-[400px] min-w-[400px] cursor-pointer rounded-lg bg-black-700 p-4 ring-rose-500 hover:ring-2 flex gap-1 items-center `,
     ]),
     container: css([
       tw` m-auto flex gap-4 `,
@@ -144,6 +166,8 @@ export function KanbanBoard({ styles, }: Props) {
                     column={column}
                     deleteColumn={onClickDelete}
                     updateColumn={onChangeEdit}
+                    createTask={createTask}
+                    tasks={tasks}
                   />
                 ))}
               </SortableContext>
@@ -161,6 +185,8 @@ export function KanbanBoard({ styles, }: Props) {
                 column={activeColumn}
                 deleteColumn={onClickDelete}
                 updateColumn={onChangeEdit}
+                createTask={createTask}
+                tasks={tasks}
                 styles={tw` border-white `}
               />
             )}
